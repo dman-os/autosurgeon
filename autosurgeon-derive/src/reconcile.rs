@@ -1,8 +1,8 @@
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote, quote_spanned};
 use syn::{
-    parse_macro_input, parse_quote, spanned::Spanned, Data, DeriveInput, Fields, GenericParam,
-    Generics,
+    Data, DeriveInput, Fields, GenericParam, Generics, parse_macro_input, parse_quote,
+    spanned::Spanned,
 };
 
 use crate::attrs;

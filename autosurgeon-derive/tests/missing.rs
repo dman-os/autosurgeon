@@ -1,5 +1,5 @@
 use automerge::transaction::Transactable;
-use autosurgeon::{hydrate, Hydrate, HydrateError, Prop, ReadDoc};
+use autosurgeon::{Hydrate, HydrateError, Prop, ReadDoc, hydrate};
 
 #[derive(Debug, Hydrate)]
 struct MaybeString {

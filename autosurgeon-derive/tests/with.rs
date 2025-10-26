@@ -1,6 +1,6 @@
-use automerge::{transaction::Transactable, ObjType};
+use automerge::{ObjType, transaction::Transactable};
 use automerge_test::{assert_doc, list, map};
-use autosurgeon::{hydrate, hydrate_prop, reconcile, reconcile_prop, Hydrate, Reconcile};
+use autosurgeon::{Hydrate, Reconcile, hydrate, hydrate_prop, reconcile, reconcile_prop};
 
 struct UserId(String);
 
@@ -14,9 +14,9 @@ struct User {
 mod autosurgeon_userid {
     use super::UserId;
     use autosurgeon::{
-        hydrate::{hydrate_path, Hydrate, HydrateResultExt},
-        reconcile::LoadKey,
         ReadDoc, Reconcile, Reconciler,
+        hydrate::{Hydrate, HydrateResultExt, hydrate_path},
+        reconcile::LoadKey,
     };
     pub type Key<'a> = std::borrow::Cow<'a, String>;
 

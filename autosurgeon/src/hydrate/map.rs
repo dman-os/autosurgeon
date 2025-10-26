@@ -76,7 +76,7 @@ mod tests {
     use automerge as am;
     use std::collections::HashMap;
 
-    use crate::{hydrate, Hydrate};
+    use crate::{Hydrate, hydrate};
 
     #[derive(Debug, PartialEq)]
     struct User {

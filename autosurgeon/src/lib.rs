@@ -554,12 +554,13 @@ mod doc;
 pub use doc::{Doc, ReadDoc};
 pub mod hydrate;
 #[doc(inline)]
-pub use hydrate::{hydrate, hydrate_path, hydrate_prop, Hydrate, HydrateError, MaybeMissing};
+pub use hydrate::{Hydrate, HydrateError, MaybeMissing, hydrate, hydrate_path, hydrate_prop};
 pub mod reconcile;
 #[doc(inline)]
 pub use reconcile::{
-    hydrate_key, reconcile, reconcile_insert, reconcile_prop, Reconcile, ReconcileError, Reconciler,
+    Reconcile, ReconcileError, Reconciler, hydrate_key, reconcile, reconcile_insert, reconcile_prop,
 };
+pub mod patch;
 mod text;
 pub use text::Text;
 pub mod map_with_parseable_keys;

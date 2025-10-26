@@ -1,6 +1,6 @@
 use automerge::transaction::Transactable;
 use automerge_test::{assert_doc, list, map};
-use autosurgeon::{reconcile, reconcile::reconcile_insert, reconcile::reconcile_prop, Reconcile};
+use autosurgeon::{Reconcile, reconcile, reconcile::reconcile_insert, reconcile::reconcile_prop};
 
 #[derive(Reconcile)]
 struct Company {

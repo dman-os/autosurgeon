@@ -3,7 +3,7 @@ use std::mem;
 use automerge::{ScalarValue, Value};
 use uuid::Uuid;
 
-use crate::{bytes::ByteArray, reconcile::LoadKey, Hydrate, HydrateError, ReadDoc, Reconcile};
+use crate::{Hydrate, HydrateError, ReadDoc, Reconcile, bytes::ByteArray, reconcile::LoadKey};
 
 impl Reconcile for Uuid {
     type Key<'a> = Uuid;

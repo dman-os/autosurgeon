@@ -1,6 +1,6 @@
 use automerge::ActorId;
 use automerge_test::{assert_doc, list, map};
-use autosurgeon::{reconcile_prop, Hydrate, HydrateError, Prop, ReadDoc, Reconcile, Reconciler};
+use autosurgeon::{Hydrate, HydrateError, Prop, ReadDoc, Reconcile, Reconciler, reconcile_prop};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 struct UserId(String);
@@ -81,9 +81,9 @@ enum Ids {
 mod reconcile_userid_mod {
     use super::UserId;
     use autosurgeon::{
-        hydrate::{hydrate_path, HydrateResultExt},
-        reconcile::LoadKey,
         ReadDoc, Reconcile, Reconciler,
+        hydrate::{HydrateResultExt, hydrate_path},
+        reconcile::LoadKey,
     };
     pub type Key<'a> = std::borrow::Cow<'a, String>;
 

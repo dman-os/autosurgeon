@@ -7,8 +7,8 @@ use syn::spanned::Spanned;
 use crate::attrs;
 
 use super::{
-    error::{DeriveError, InvalidKeyAttr},
     ReconcileImpl,
+    error::{DeriveError, InvalidKeyAttr},
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
