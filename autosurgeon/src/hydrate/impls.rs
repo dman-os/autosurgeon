@@ -8,6 +8,24 @@ impl Hydrate for String {
     }
 }
 
+impl Hydrate for std::sync::Arc<str> {
+    fn hydrate_string(s: &'_ str) -> Result<Self, HydrateError> {
+        Ok(s.into())
+    }
+}
+
+impl Hydrate for std::rc::Rc<str> {
+    fn hydrate_string(s: &'_ str) -> Result<Self, HydrateError> {
+        Ok(s.into())
+    }
+}
+
+impl Hydrate for Box<str> {
+    fn hydrate_string(s: &'_ str) -> Result<Self, HydrateError> {
+        Ok(s.into())
+    }
+}
+
 impl<T> Hydrate for Vec<T>
 where
     T: Hydrate,
@@ -19,6 +37,48 @@ where
             result.push(elem);
         }
         Ok(result)
+    }
+}
+
+impl<T> Hydrate for Box<[T]>
+where
+    T: Hydrate,
+{
+    fn hydrate_seq<D: ReadDoc>(doc: &D, obj: &automerge::ObjId) -> Result<Self, HydrateError> {
+        let mut result = Vec::with_capacity(doc.length(obj));
+        for idx in 0..doc.length(obj) {
+            let elem = hydrate_prop(doc, obj, idx)?;
+            result.push(elem);
+        }
+        Ok(result.into())
+    }
+}
+
+impl<T> Hydrate for std::rc::Rc<[T]>
+where
+    T: Hydrate,
+{
+    fn hydrate_seq<D: ReadDoc>(doc: &D, obj: &automerge::ObjId) -> Result<Self, HydrateError> {
+        let mut result = Vec::with_capacity(doc.length(obj));
+        for idx in 0..doc.length(obj) {
+            let elem = hydrate_prop(doc, obj, idx)?;
+            result.push(elem);
+        }
+        Ok(result.into())
+    }
+}
+
+impl<T> Hydrate for std::sync::Arc<[T]>
+where
+    T: Hydrate,
+{
+    fn hydrate_seq<D: ReadDoc>(doc: &D, obj: &automerge::ObjId) -> Result<Self, HydrateError> {
+        let mut result = Vec::with_capacity(doc.length(obj));
+        for idx in 0..doc.length(obj) {
+            let elem = hydrate_prop(doc, obj, idx)?;
+            result.push(elem);
+        }
+        Ok(result.into())
     }
 }
 
@@ -61,6 +121,18 @@ impl Hydrate for f64 {
 impl Hydrate for f32 {
     fn hydrate_f64(f: f64) -> Result<Self, HydrateError> {
         Ok(f as f32)
+    }
+}
+
+impl Hydrate for automerge::ChangeHash {
+    fn hydrate_bytes(bytes: &[u8]) -> Result<Self, HydrateError> {
+        let inner = bytes.try_into().map_err(|err| {
+            HydrateError::unexpected(
+                "byte of length 32",
+                format!("error parsing chagne hash {err:?}"),
+            )
+        })?;
+        Ok(automerge::ChangeHash(inner))
     }
 }
 
@@ -117,6 +189,16 @@ impl<T: Hydrate> Hydrate for Box<T> {
         prop: crate::Prop<'_>,
     ) -> Result<Self, HydrateError> {
         Ok(Box::new(T::hydrate(doc, obj, prop)?))
+    }
+}
+
+impl<T: Hydrate> Hydrate for std::sync::Arc<T> {
+    fn hydrate<D: ReadDoc>(
+        doc: &D,
+        obj: &automerge::ObjId,
+        prop: crate::Prop<'_>,
+    ) -> Result<Self, HydrateError> {
+        Ok(std::sync::Arc::new(T::hydrate(doc, obj, prop)?))
     }
 }
 

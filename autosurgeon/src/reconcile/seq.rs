@@ -19,6 +19,27 @@ impl<T: Reconcile> Reconcile for Vec<T> {
     }
 }
 
+impl<T: Reconcile> Reconcile for Box<[T]> {
+    type Key<'a> = NoKey;
+    fn reconcile<R: Reconciler>(&self, reconciler: R) -> Result<(), R::Error> {
+        reconcile_seq(self, reconciler)
+    }
+}
+
+impl<T: Reconcile> Reconcile for std::rc::Rc<[T]> {
+    type Key<'a> = NoKey;
+    fn reconcile<R: Reconciler>(&self, reconciler: R) -> Result<(), R::Error> {
+        reconcile_seq(self, reconciler)
+    }
+}
+
+impl<T: Reconcile> Reconcile for std::sync::Arc<[T]> {
+    type Key<'a> = NoKey;
+    fn reconcile<R: Reconciler>(&self, reconciler: R) -> Result<(), R::Error> {
+        reconcile_seq(self, reconciler)
+    }
+}
+
 // Represents a key of an element in the document, we don't represent the actual element here
 // because we don't want to hydrate the entire element from the document, just the key
 struct OldElem<K> {
