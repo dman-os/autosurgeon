@@ -554,7 +554,10 @@ mod doc;
 pub use doc::{Doc, ReadDoc};
 pub mod hydrate;
 #[doc(inline)]
-pub use hydrate::{hydrate, hydrate_path, hydrate_prop, Hydrate, HydrateError, MaybeMissing};
+pub use hydrate::{
+    hydrate, hydrate_at, hydrate_path, hydrate_path_at, hydrate_prop, hydrate_prop_at, Hydrate,
+    HydrateError, MaybeMissing,
+};
 pub mod reconcile;
 #[doc(inline)]
 pub use reconcile::{
