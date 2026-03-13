@@ -98,6 +98,75 @@ pub trait Doc: ReadDoc {
     fn init_root_from_hydrate(&mut self, value: &am::hydrate::Map) -> Result<(), AutomergeError>;
 }
 
+pub(crate) struct HistoricalReadDoc<'a, D> {
+    doc: &'a D,
+    heads: &'a [am::ChangeHash],
+}
+
+impl<'a, D> HistoricalReadDoc<'a, D> {
+    pub(crate) fn new(doc: &'a D, heads: &'a [am::ChangeHash]) -> Self {
+        Self { doc, heads }
+    }
+}
+
+impl<D: am::ReadDoc> ReadDoc for HistoricalReadDoc<'_, D> {
+    type Parents<'a>
+        = am::Parents<'a>
+    where
+        Self: 'a;
+
+    fn get_heads(&self) -> Vec<am::ChangeHash> {
+        self.heads.to_vec()
+    }
+
+    fn get<P: Into<am::Prop>>(
+        &self,
+        obj: &ObjId,
+        prop: P,
+    ) -> Result<Option<(Value<'_>, ObjId)>, AutomergeError> {
+        am::ReadDoc::get_at(self.doc, obj, prop, self.heads)
+    }
+
+    fn object_type<O: AsRef<ObjId>>(&self, obj: O) -> Option<am::ObjType> {
+        am::ReadDoc::object_type(self.doc, obj)
+            .map(Some)
+            .unwrap_or(None)
+    }
+
+    fn map_range<'a, O, R>(&'a self, obj: O, range: R) -> am::iter::MapRange<'a>
+    where
+        R: RangeBounds<String> + 'a,
+        O: AsRef<ObjId>,
+        R: RangeBounds<String>,
+    {
+        am::ReadDoc::map_range_at(self.doc, obj, range, self.heads)
+    }
+
+    fn list_range<O: AsRef<ObjId>, R: RangeBounds<usize>>(
+        &self,
+        obj: O,
+        range: R,
+    ) -> am::iter::ListRange<'_> {
+        am::ReadDoc::list_range_at(self.doc, obj, range, self.heads)
+    }
+
+    fn length<O: AsRef<ObjId>>(&self, obj: O) -> usize {
+        am::ReadDoc::length_at(self.doc, obj, self.heads)
+    }
+
+    fn text<O: AsRef<ObjId>>(&self, obj: O) -> Result<String, AutomergeError> {
+        am::ReadDoc::text_at(self.doc, obj, self.heads)
+    }
+
+    fn parents<O: AsRef<ObjId>>(&self, obj: O) -> Result<Self::Parents<'_>, AutomergeError> {
+        am::ReadDoc::parents_at(self.doc, obj, self.heads)
+    }
+
+    fn is_empty(&self) -> bool {
+        am::ReadDoc::keys_at(self.doc, am::ROOT, self.heads).count() == 0
+    }
+}
+
 impl ReadDoc for am::AutoCommit {
     type Parents<'a> = am::Parents<'a>;
     fn get_heads(&self) -> Vec<am::ChangeHash> {
@@ -358,5 +427,28 @@ impl<T: am::transaction::Transactable + ReadDoc> Doc for T {
 
     fn init_root_from_hydrate(&mut self, value: &am::hydrate::Map) -> Result<(), AutomergeError> {
         am::transaction::Transactable::init_root_from_hydrate(self, value)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{HistoricalReadDoc, ReadDoc};
+    use automerge::transaction::Transactable;
+
+    #[test]
+    fn historical_is_empty_reflects_requested_heads() {
+        let mut doc = automerge::Automerge::new();
+
+        let empty_heads = doc.get_heads();
+        assert!(HistoricalReadDoc::new(&doc, &empty_heads).is_empty());
+
+        let mut tx = doc.transaction();
+        tx.put(automerge::ROOT, "name", "alice").unwrap();
+        tx.commit();
+        let non_empty_heads = doc.get_heads();
+
+        assert!(HistoricalReadDoc::new(&doc, &empty_heads).is_empty());
+        assert!(!HistoricalReadDoc::new(&doc, &non_empty_heads).is_empty());
+        assert!(!doc.is_empty());
     }
 }
