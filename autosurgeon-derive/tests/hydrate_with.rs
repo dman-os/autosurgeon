@@ -1,5 +1,5 @@
-use automerge::{transaction::Transactable, ObjType};
-use autosurgeon::{hydrate, hydrate_prop, Hydrate, HydrateError, Prop, ReadDoc};
+use automerge::{ObjType, transaction::Transactable};
+use autosurgeon::{Hydrate, HydrateError, Prop, ReadDoc, hydrate, hydrate_prop};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct Inner(u64);

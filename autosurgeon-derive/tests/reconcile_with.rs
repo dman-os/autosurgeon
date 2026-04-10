@@ -1,6 +1,6 @@
 use automerge::ActorId;
 use automerge_test::{assert_doc, list, map};
-use autosurgeon::{reconcile_prop, Hydrate, Reconcile, Reconciler};
+use autosurgeon::{Hydrate, Reconcile, Reconciler, reconcile_prop};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Inner(u64);
@@ -16,7 +16,7 @@ impl Hydrate for Outer {
 }
 
 fn reconcile_outer<R: Reconciler>(outer: &Outer, reconciler: R) -> Result<(), R::Error> {
-    outer.0 .0.reconcile(reconciler)?;
+    outer.0.0.reconcile(reconciler)?;
     Ok(())
 }
 
@@ -69,15 +69,15 @@ struct CustomerString(InnerString);
 
 impl CustomerString {
     fn id(&self) -> u64 {
-        self.0 .0.split('_').nth(1).unwrap().parse().unwrap()
+        self.0.0.split('_').nth(1).unwrap().parse().unwrap()
     }
 }
 
 mod autosurgeon_customerstring {
     use autosurgeon::{
-        hydrate::{hydrate_path, HydrateResultExt},
-        reconcile::LoadKey,
         ReadDoc, Reconcile,
+        hydrate::{HydrateResultExt, hydrate_path},
+        reconcile::LoadKey,
     };
 
     use super::CustomerString;
@@ -106,7 +106,7 @@ mod autosurgeon_customerstring {
         c: &CustomerString,
         reconciler: R,
     ) -> Result<(), R::Error> {
-        c.0 .0.reconcile(reconciler)?;
+        c.0.0.reconcile(reconciler)?;
         Ok(())
     }
 }
@@ -156,7 +156,7 @@ struct Product {
 }
 
 fn reconcile_productid<R: Reconciler>(id: &ProductId, mut reconciler: R) -> Result<(), R::Error> {
-    reconciler.u64(id.0 .0)
+    reconciler.u64(id.0.0)
 }
 
 #[test]
@@ -330,7 +330,7 @@ enum Color {
 }
 
 fn reconcile_color<R: Reconciler>(color: &ColorInt, mut reconciler: R) -> Result<(), R::Error> {
-    reconciler.u64(color.0 .0)
+    reconciler.u64(color.0.0)
 }
 
 #[test]

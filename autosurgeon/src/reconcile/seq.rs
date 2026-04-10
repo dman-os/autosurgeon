@@ -338,8 +338,9 @@ tuple_impl!(XXV, 1 N1, 2 N2, 3 N3, 4 N4, 5 N5, 6 N6, 7 N7, 8 N8, 9 N9, 10 N10, 1
 #[cfg(test)]
 mod tests {
     use crate::{
+        ReadDoc,
         reconcile::{LoadKey, MapReconciler},
-        reconcile_prop, ReadDoc,
+        reconcile_prop,
     };
     use automerge_test::{assert_doc, list, map};
     use std::borrow::Cow;

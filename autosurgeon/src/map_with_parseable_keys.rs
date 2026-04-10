@@ -56,7 +56,7 @@ where
             return Err(HydrateError::unexpected(
                 "a map",
                 "something else".to_string(),
-            ))
+            ));
         }
     };
     crate::hydrate::map::hydrate_map_impl(doc, &obj, |k| {

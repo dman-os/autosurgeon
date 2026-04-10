@@ -1,5 +1,5 @@
-use automerge::{transaction::Transactable, ObjType};
-use autosurgeon::{hydrate, hydrate_prop, Hydrate};
+use automerge::{ObjType, transaction::Transactable};
+use autosurgeon::{Hydrate, hydrate, hydrate_prop};
 
 #[derive(Debug, Hydrate, PartialEq)]
 struct Company {

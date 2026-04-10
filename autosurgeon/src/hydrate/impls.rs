@@ -1,4 +1,4 @@
-use super::{hydrate_prop, Hydrate, HydrateError};
+use super::{Hydrate, HydrateError, hydrate_prop};
 use crate::ReadDoc;
 use std::borrow::Cow;
 
@@ -76,7 +76,7 @@ impl<T: Hydrate> Hydrate for Option<T> {
                 return Err(HydrateError::unexpected(
                     "a ScalarValue::Null",
                     "nothing at all".to_string(),
-                ))
+                ));
             }
             Some((Value::Object(ObjType::Map), id)) => Some(T::hydrate_map(doc, &id)?),
             Some((Value::Object(ObjType::Table), id)) => Some(T::hydrate_map(doc, &id)?),

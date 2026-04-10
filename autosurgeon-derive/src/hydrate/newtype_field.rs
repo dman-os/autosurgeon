@@ -1,5 +1,5 @@
 use proc_macro2::TokenStream;
-use quote::{quote, quote_spanned, ToTokens};
+use quote::{ToTokens, quote, quote_spanned};
 use syn::spanned::Spanned;
 
 use crate::attrs;

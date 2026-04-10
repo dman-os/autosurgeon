@@ -1,4 +1,4 @@
-use crate::{reconcile::CounterReconciler, Hydrate, Reconcile};
+use crate::{Hydrate, Reconcile, reconcile::CounterReconciler};
 
 /// A type which reconciles to an [`automerge::ScalarValue::Counter`]
 ///

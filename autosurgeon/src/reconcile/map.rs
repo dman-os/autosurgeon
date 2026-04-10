@@ -71,9 +71,8 @@ mod tests {
     use automerge_test::{assert_doc, list, map};
 
     use crate::{
-        reconcile,
-        reconcile::{hydrate_key, LoadKey, MapReconciler},
-        ReadDoc, Reconcile,
+        ReadDoc, Reconcile, reconcile,
+        reconcile::{LoadKey, MapReconciler, hydrate_key},
     };
 
     #[test]

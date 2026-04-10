@@ -7,10 +7,10 @@ use syn::spanned::Spanned;
 use crate::attrs;
 
 use super::struct_impl::{
-    named_field_impl, tuple_struct_impl, Field, KeyField, NamedField, NamedFields, TupleField,
-    UnnamedFields,
+    Field, KeyField, NamedField, NamedFields, TupleField, UnnamedFields, named_field_impl,
+    tuple_struct_impl,
 };
-use super::{error::DeriveError, ReconcileImpl};
+use super::{ReconcileImpl, error::DeriveError};
 
 /// Represents a variant of an enum.
 enum Variant<'a> {
