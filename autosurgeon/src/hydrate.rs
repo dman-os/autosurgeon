@@ -159,62 +159,75 @@ pub fn hydrate_path<'a, D: ReadDoc, H: Hydrate, P: IntoIterator<Item = Prop<'a>>
     path: P,
 ) -> Result<Option<H>, HydrateError> {
     let mut path = path.into_iter().peekable();
-    let (mut obj, mut prop): (automerge::ObjId, Prop<'_>) = match path.next() {
-        Some(p) => (obj.clone(), p.clone()),
-        None => {
-            if obj == &automerge::ROOT {
-                return Ok(Some(hydrate(doc)?));
-            } else {
-                let Some(Parent {
-                    obj: parent_obj,
-                    prop: parent_prop,
-                    ..
-                }) = doc.parents(obj)?.next()
-                else {
-                    return Ok(None);
-                };
-                return hydrate_prop(doc, parent_obj, parent_prop);
-            }
+
+    if path.peek().is_none() {
+        if obj == &automerge::ROOT {
+            return Ok(Some(hydrate(doc)?));
         }
-    };
-    let Some(mut obj_type) = doc.object_type(&obj) else {
+
+        let Some(Parent {
+            obj: parent_obj,
+            prop: parent_prop,
+            ..
+        }) = doc.parents(obj)?.next()
+        else {
+            return Ok(None);
+        };
+
+        return Ok(Some(hydrate_prop(doc, parent_obj, parent_prop)?));
+    }
+
+    let Some(mut current_type) = doc.object_type(obj) else {
         return Ok(None);
     };
+
+    let mut current_obj = obj.clone();
+
     while let Some(path_elem) = path.next() {
-        match (&prop, obj_type) {
+        let is_last = path.peek().is_none();
+
+        match (&path_elem, current_type) {
             (Prop::Key(key), ObjType::Map | ObjType::Table) => {
-                match doc.get(&obj, key.as_ref())? {
-                    Some((Value::Object(objtype), id)) => {
-                        obj = id;
-                        obj_type = objtype;
+                let Some((value, child_obj)) = doc.get(&current_obj, key.as_ref())? else {
+                    return Ok(None);
+                };
+
+                if is_last {
+                    return Ok(Some(hydrate_prop(doc, current_obj, path_elem)?));
+                }
+
+                match value {
+                    Value::Object(child_type) => {
+                        current_obj = child_obj;
+                        current_type = child_type;
                     }
-                    Some((Value::Scalar(_), _)) => {
-                        if path.peek().is_some() {
-                            return Ok(None);
-                        }
-                    }
-                    None => return Ok(None),
+                    Value::Scalar(_) => return Ok(None),
                 }
             }
+
             (Prop::Index(idx), ObjType::List | ObjType::Text) => {
-                match doc.get(&obj, (*idx) as usize)? {
-                    Some((Value::Object(objtype), id)) => {
-                        obj = id;
-                        obj_type = objtype;
+                let Some((value, child_obj)) = doc.get(&current_obj, (*idx) as usize)? else {
+                    return Ok(None);
+                };
+
+                if is_last {
+                    return Ok(Some(hydrate_prop(doc, current_obj, path_elem)?));
+                }
+
+                match value {
+                    Value::Object(child_type) => {
+                        current_obj = child_obj;
+                        current_type = child_type;
                     }
-                    Some((Value::Scalar(_), _)) => {
-                        if path.peek().is_some() {
-                            return Ok(None);
-                        }
-                    }
-                    None => return Ok(None),
+                    Value::Scalar(_) => return Ok(None),
                 }
             }
+
             _ => return Ok(None),
         }
-        prop = path_elem;
     }
-    Ok(Some(hydrate_prop::<_, H, _, _>(doc, obj, prop)?))
+
+    unreachable!("empty path is handled above")
 }
 
 /// Hydrate an instance of `H` located at a path in the document at `heads`
