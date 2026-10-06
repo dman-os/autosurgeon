@@ -1053,7 +1053,7 @@ pub fn hydrate_key<'a, D: ReadDoc, H: crate::Hydrate + Clone>(
 ) -> Result<LoadKey<H>, ReconcileError> {
     use crate::hydrate::HydrateResultExt;
     Ok(
-        crate::hydrate::hydrate_path(doc, obj, vec![outer, inner].into_iter())
+        crate::hydrate::hydrate_path(doc, obj, [outer, inner])
             .strip_unexpected()?
             .map(LoadKey::Found)
             .unwrap_or(LoadKey::KeyNotFound),
