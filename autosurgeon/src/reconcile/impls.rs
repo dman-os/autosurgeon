@@ -56,6 +56,84 @@ impl Reconcile for str {
     }
 }
 
+impl Reconcile for std::rc::Rc<str> {
+    type Key<'a> = Cow<'a, str>;
+    fn reconcile<R: Reconciler>(&self, mut reconciler: R) -> Result<(), R::Error> {
+        reconciler.str(self)
+    }
+    fn key(&self) -> LoadKey<Self::Key<'_>> {
+        LoadKey::Found(Cow::Borrowed(self))
+    }
+    fn hydrate_key<'a, D: ReadDoc>(
+        doc: &D,
+        obj: &automerge::ObjId,
+        prop: crate::Prop<'_>,
+    ) -> Result<LoadKey<Self::Key<'a>>, crate::ReconcileError> {
+        Ok(match doc.get(obj, &prop)? {
+            Some((Value::Scalar(s), _)) => {
+                if let ScalarValue::Str(s) = s.as_ref() {
+                    LoadKey::Found(Cow::Owned(s.to_string()))
+                } else {
+                    LoadKey::KeyNotFound
+                }
+            }
+            _ => LoadKey::KeyNotFound,
+        })
+    }
+}
+
+impl Reconcile for std::sync::Arc<str> {
+    type Key<'a> = Cow<'a, str>;
+    fn reconcile<R: Reconciler>(&self, mut reconciler: R) -> Result<(), R::Error> {
+        reconciler.str(self)
+    }
+    fn key(&self) -> LoadKey<Self::Key<'_>> {
+        LoadKey::Found(Cow::Borrowed(self))
+    }
+    fn hydrate_key<'a, D: ReadDoc>(
+        doc: &D,
+        obj: &automerge::ObjId,
+        prop: crate::Prop<'_>,
+    ) -> Result<LoadKey<Self::Key<'a>>, crate::ReconcileError> {
+        Ok(match doc.get(obj, &prop)? {
+            Some((Value::Scalar(s), _)) => {
+                if let ScalarValue::Str(s) = s.as_ref() {
+                    LoadKey::Found(Cow::Owned(s.to_string()))
+                } else {
+                    LoadKey::KeyNotFound
+                }
+            }
+            _ => LoadKey::KeyNotFound,
+        })
+    }
+}
+
+impl Reconcile for Box<str> {
+    type Key<'a> = Cow<'a, str>;
+    fn reconcile<R: Reconciler>(&self, mut reconciler: R) -> Result<(), R::Error> {
+        reconciler.str(self)
+    }
+    fn key(&self) -> LoadKey<Self::Key<'_>> {
+        LoadKey::Found(Cow::Borrowed(self))
+    }
+    fn hydrate_key<'a, D: ReadDoc>(
+        doc: &D,
+        obj: &automerge::ObjId,
+        prop: crate::Prop<'_>,
+    ) -> Result<LoadKey<Self::Key<'a>>, crate::ReconcileError> {
+        Ok(match doc.get(obj, &prop)? {
+            Some((Value::Scalar(s), _)) => {
+                if let ScalarValue::Str(s) = s.as_ref() {
+                    LoadKey::Found(Cow::Owned(s.to_string()))
+                } else {
+                    LoadKey::KeyNotFound
+                }
+            }
+            _ => LoadKey::KeyNotFound,
+        })
+    }
+}
+
 impl<T: Reconcile + ?Sized> Reconcile for &'_ T {
     type Key<'b> = T::Key<'b>;
     fn reconcile<R: Reconciler>(&self, reconciler: R) -> Result<(), R::Error> {
@@ -214,6 +292,40 @@ impl<T: Reconcile> Reconcile for Box<T> {
     }
 }
 
+impl<T: Reconcile> Reconcile for std::sync::Arc<T> {
+    type Key<'a> = T::Key<'a>;
+    fn reconcile<R: Reconciler>(&self, reconciler: R) -> Result<(), R::Error> {
+        T::reconcile(self, reconciler)
+    }
+    fn hydrate_key<'a, D: ReadDoc>(
+        doc: &D,
+        obj: &automerge::ObjId,
+        prop: crate::Prop<'_>,
+    ) -> Result<LoadKey<Self::Key<'a>>, crate::ReconcileError> {
+        T::hydrate_key(doc, obj, prop)
+    }
+    fn key(&self) -> LoadKey<Self::Key<'_>> {
+        T::key(self)
+    }
+}
+
+impl<T: Reconcile> Reconcile for std::rc::Rc<T> {
+    type Key<'a> = T::Key<'a>;
+    fn reconcile<R: Reconciler>(&self, reconciler: R) -> Result<(), R::Error> {
+        T::reconcile(self, reconciler)
+    }
+    fn hydrate_key<'a, D: ReadDoc>(
+        doc: &D,
+        obj: &automerge::ObjId,
+        prop: crate::Prop<'_>,
+    ) -> Result<LoadKey<Self::Key<'a>>, crate::ReconcileError> {
+        T::hydrate_key(doc, obj, prop)
+    }
+    fn key(&self) -> LoadKey<Self::Key<'_>> {
+        T::key(self)
+    }
+}
+
 impl<T: Reconcile> Reconcile for Option<T> {
     type Key<'a> = T::Key<'a>;
     fn key(&self) -> LoadKey<Self::Key<'_>> {
@@ -241,6 +353,35 @@ impl<T: Reconcile> Reconcile for Option<T> {
             },
             None => Ok(LoadKey::KeyNotFound),
         }
+    }
+}
+
+impl Reconcile for automerge::ChangeHash {
+    type Key<'a> = Cow<'a, [u8; 32]>;
+    fn reconcile<R: Reconciler>(&self, mut reconciler: R) -> Result<(), R::Error> {
+        reconciler.bytes(self.0)
+    }
+    fn key(&self) -> LoadKey<Self::Key<'_>> {
+        LoadKey::Found(Cow::Borrowed(&self.0))
+    }
+    fn hydrate_key<'a, D: ReadDoc>(
+        doc: &D,
+        obj: &automerge::ObjId,
+        prop: crate::Prop<'_>,
+    ) -> Result<LoadKey<Self::Key<'a>>, crate::ReconcileError> {
+        Ok(match doc.get(obj, &prop)? {
+            Some((Value::Scalar(s), _)) => {
+                if let ScalarValue::Bytes(bytes) = s.as_ref() {
+                    match (&bytes[..]).try_into() {
+                        Ok(val) => LoadKey::Found(Cow::Owned(val)),
+                        Err(_) => LoadKey::KeyNotFound,
+                    }
+                } else {
+                    LoadKey::KeyNotFound
+                }
+            }
+            _ => LoadKey::KeyNotFound,
+        })
     }
 }
 

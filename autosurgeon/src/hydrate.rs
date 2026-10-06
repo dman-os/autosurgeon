@@ -1,7 +1,7 @@
 use automerge::{ObjType, Parent, ScalarValue, Value};
 use std::borrow::Cow;
 
-use crate::{Prop, ReadDoc};
+use crate::{doc::HistoricalReadDoc, Prop, ReadDoc};
 
 mod impls;
 pub(crate) mod map;
@@ -110,6 +110,17 @@ pub fn hydrate<D: ReadDoc, H: Hydrate>(doc: &D) -> Result<H, HydrateError> {
     H::hydrate_map(doc, &automerge::ROOT)
 }
 
+/// Hydrate an instance of `H` from `doc` at `heads`
+///
+/// With [`automerge::AutoCommit`], prefer passing `doc.document()` so reads are evaluated against
+/// committed state.
+pub fn hydrate_at<D: automerge::ReadDoc, H: Hydrate>(
+    doc: &D,
+    heads: &[automerge::ChangeHash],
+) -> Result<H, HydrateError> {
+    hydrate(&HistoricalReadDoc::new(doc, heads))
+}
+
 /// Hydrate an instance of `H` located at property `prop` of object `obj`
 pub fn hydrate_prop<'a, D: ReadDoc, H: Hydrate, P: Into<Prop<'a>>, O: AsRef<automerge::ObjId>>(
     doc: &D,
@@ -117,6 +128,25 @@ pub fn hydrate_prop<'a, D: ReadDoc, H: Hydrate, P: Into<Prop<'a>>, O: AsRef<auto
     prop: P,
 ) -> Result<H, HydrateError> {
     H::hydrate(doc, obj.as_ref(), prop.into())
+}
+
+/// Hydrate an instance of `H` located at property `prop` of object `obj` at `heads`
+///
+/// With [`automerge::AutoCommit`], prefer passing `doc.document()` so reads are evaluated against
+/// committed state.
+pub fn hydrate_prop_at<
+    'a,
+    D: automerge::ReadDoc,
+    H: Hydrate,
+    P: Into<Prop<'a>>,
+    O: AsRef<automerge::ObjId>,
+>(
+    doc: &D,
+    obj: O,
+    prop: P,
+    heads: &[automerge::ChangeHash],
+) -> Result<H, HydrateError> {
+    hydrate_prop(&HistoricalReadDoc::new(doc, heads), obj, prop)
 }
 
 /// Hydrate an instance of `H` located at a path in the document
@@ -185,6 +215,19 @@ pub fn hydrate_path<'a, D: ReadDoc, H: Hydrate, P: IntoIterator<Item = Prop<'a>>
         prop = path_elem;
     }
     Ok(Some(hydrate_prop::<_, H, _, _>(doc, obj, prop)?))
+}
+
+/// Hydrate an instance of `H` located at a path in the document at `heads`
+///
+/// With [`automerge::AutoCommit`], prefer passing `doc.document()` so reads are evaluated against
+/// committed state.
+pub fn hydrate_path_at<'a, D: automerge::ReadDoc, H: Hydrate, P: IntoIterator<Item = Prop<'a>>>(
+    doc: &D,
+    obj: &automerge::ObjId,
+    path: P,
+    heads: &[automerge::ChangeHash],
+) -> Result<Option<H>, HydrateError> {
+    hydrate_path(&HistoricalReadDoc::new(doc, heads), obj, path)
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -536,5 +579,106 @@ mod tests {
                 number: 1,
             }
         );
+    }
+
+    #[test]
+    fn hydrate_at_historical_heads() {
+        let mut doc = automerge::Automerge::new();
+        let mut tx = doc.transaction();
+        tx.put(automerge::ROOT, "name", "Microsoft").unwrap();
+        let emps = tx
+            .put_object(automerge::ROOT, "employees", automerge::ObjType::List)
+            .unwrap();
+        let emp = tx.insert_object(&emps, 0, automerge::ObjType::Map).unwrap();
+        tx.put(&emp, "name", "Satya Nadella").unwrap();
+        tx.put(&emp, "number", 1_u64).unwrap();
+        tx.commit();
+        let _ = doc.get_heads();
+        let heads1 = doc.get_heads();
+
+        let mut tx = doc.transaction();
+        tx.put(automerge::ROOT, "name", "Microsoft Corp").unwrap();
+        tx.put(&emp, "name", "Satya").unwrap();
+        tx.commit();
+        let _ = doc.get_heads();
+
+        let historical = hydrate_at::<_, Company>(&doc, &heads1).unwrap();
+        assert_eq!(
+            historical,
+            Company {
+                name: "Microsoft".to_string(),
+                employees: vec![Employee {
+                    name: "Satya Nadella".to_string(),
+                    number: 1,
+                }],
+            }
+        );
+
+        let current = hydrate::<_, Company>(&doc).unwrap();
+        assert_eq!(
+            current,
+            Company {
+                name: "Microsoft Corp".to_string(),
+                employees: vec![Employee {
+                    name: "Satya".to_string(),
+                    number: 1,
+                }],
+            }
+        );
+    }
+
+    #[test]
+    fn hydrate_path_at_historical_heads() {
+        let mut doc = automerge::Automerge::new();
+        let mut tx = doc.transaction();
+        let companies = tx
+            .put_object(automerge::ROOT, "companies", ObjType::Map)
+            .unwrap();
+        let ms = tx
+            .put_object(&companies, "Microsoft", ObjType::Map)
+            .unwrap();
+        tx.put(&ms, "name", "Microsoft").unwrap();
+        let employees = tx.put_object(&ms, "employees", ObjType::List).unwrap();
+        let emp = tx.insert_object(&employees, 0, ObjType::Map).unwrap();
+        tx.put(&emp, "name", "Satya Nadella").unwrap();
+        tx.put(&emp, "number", 1_u64).unwrap();
+        tx.commit();
+        let _ = doc.get_heads();
+        let heads1 = doc.get_heads();
+
+        let mut tx = doc.transaction();
+        let emp2 = tx.insert_object(&employees, 1, ObjType::Map).unwrap();
+        tx.put(&emp2, "name", "Ada Lovelace").unwrap();
+        tx.put(&emp2, "number", 2_u64).unwrap();
+        tx.commit();
+        let _ = doc.get_heads();
+
+        let result: Company = hydrate_path_at(&doc, &companies, vec!["Microsoft".into()], &heads1)
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            result,
+            Company {
+                name: "Microsoft".to_string(),
+                employees: vec![Employee {
+                    name: "Satya Nadella".to_string(),
+                    number: 1,
+                }],
+            }
+        );
+
+        let missing: Option<String> = hydrate_path_at(
+            &doc,
+            &companies,
+            vec![
+                "Microsoft".into(),
+                "employees".into(),
+                1_usize.into(),
+                "name".into(),
+            ],
+            &heads1,
+        )
+        .unwrap();
+        assert_eq!(missing, None);
     }
 }
